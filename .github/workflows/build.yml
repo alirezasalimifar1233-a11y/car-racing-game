@@ -3,34 +3,47 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build APK
-        uses: digreatbrian/buildozer-action@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk python3-pip \
+            python3-venv autoconf libtool pkg-config \
+            zlib1g-dev libncurses-dev libtinfo6 \
+            cmake libffi-dev libssl-dev \
+            automake autopoint gettext
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.8
-          work-dir: .
-          buildozer-cmd: buildozer -v android debug
+          python-version: '3.11'
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install buildozer cython==0.29.34
+
+      - name: Build APK
+        env:
+          BUILDOZER_WARN_ON_ROOT: '0'
+        run: buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: car-racing-apk
-          path: ./bin/*.apk
-
-
-
-
-
-
-
-
-
-
+          path: bin/*.apk
+          if-no-files-found: error
           
